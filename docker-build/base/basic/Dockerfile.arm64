@@ -1,25 +1,37 @@
-FROM ubuntu:bionic-20220913
+FROM ubuntu:20.04
 
 ARG version
-
+ARG APT_MIRROR_PORTS=http://mirrors.aliyun.com/ubuntu-ports
+ARG APT_MIRROR_MAIN=http://mirrors.aliyun.com/ubuntu
 USER root
 WORKDIR /data/projects/python/
-ENV VIRTUAL_ENV /data/projects/python/venv
+ENV VIRTUAL_ENV=/data/projects/python/venv
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
 
-RUN apt-get update && \
-    apt-get install -y curl gcc g++ make openssl supervisor libgmp-dev \
+RUN if [ -n "$APT_MIRROR_PORTS" ]; then \
+        sed -i "s@http://ports.ubuntu.com/ubuntu-ports@${APT_MIRROR_PORTS}@g" /etc/apt/sources.list; \
+    fi && \
+    if [ -n "$APT_MIRROR_MAIN" ]; then \
+        sed -i "s@http://archive.ubuntu.com/ubuntu@${APT_MIRROR_MAIN}@g" /etc/apt/sources.list; \
+        sed -i "s@http://security.ubuntu.com/ubuntu@${APT_MIRROR_MAIN}@g" /etc/apt/sources.list; \
+    fi && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates tzdata curl gcc g++ make openssl supervisor libgmp-dev \
         libmpfr-dev libmpc-dev libaio1 libaio-dev numactl autoconf automake \
         libtool libffi-dev libssl-dev liblz4-1 liblz4-dev liblz4-tool zlib1g \
         zlib1g-dev xz-utils libopenblas-dev liblapack-dev libsm-dev pkg-config \
         libblas-dev libatlas-base-dev libtinfo-dev gfortran libbz2-dev liblzma-dev \
-        libsnappy-dev && \
-    apt-get autoremove && \
+        libsnappy-dev libxml2-dev libxslt1-dev libhdf5-dev libhdf5-serial-dev libaec-dev && \
+    if [ ! -f /usr/lib/aarch64-linux-gnu/hdf5/serial/libhdf5.so ] && [ -f /usr/lib/aarch64-linux-gnu/hdf5/serial/libhdf5_serial.so ]; then \
+        ln -s /usr/lib/aarch64-linux-gnu/hdf5/serial/libhdf5_serial.so /usr/lib/aarch64-linux-gnu/hdf5/serial/libhdf5.so; \
+    fi && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* 
 
-RUN curl -o Python-3.8.13.tar.xz https://www.python.org/ftp/python/3.8.13/Python-3.8.13.tar.xz && \
-    tar -xvf Python-3.8.13.tar.xz && \
-    cd Python-3.8.13 && \
+RUN curl -o Python-3.8.20.tar.xz https://www.python.org/ftp/python/3.8.20/Python-3.8.20.tar.xz && \
+    tar -xvf Python-3.8.20.tar.xz && \
+    cd Python-3.8.20 && \
     ./configure --prefix=/opt/python3 && \
     make altinstall && \
     ln -s /opt/python3/bin/python3.8 /usr/local/bin/python3.8 && \
@@ -29,8 +41,8 @@ RUN curl -o Python-3.8.13.tar.xz https://www.python.org/ftp/python/3.8.13/Python
     ln -s /usr/bin/pip3.8 /usr/bin/pip3 && \
     ln -s /usr/bin/pip3 /usr/bin/pip && \
     cd .. && \
-    rm Python-3.8.13.tar.xz && \
-    rm -rf Python-3.8.13
+    rm Python-3.8.20.tar.xz && \
+    rm -rf Python-3.8.20
 
 RUN curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-9.0.1/clang+llvm-9.0.1-aarch64-linux-gnu.tar.xz \
         -o /root/clang+llvm-9.0.1-aarch64-linux-gnu.tar.xz && \
@@ -40,13 +52,24 @@ RUN curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-9.0.1
 
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:/root/clang-llvm-9.0.1/bin:$PATH"
+ENV HDF5_DIR=/usr/lib/aarch64-linux-gnu/hdf5/serial
+ENV CPATH=/usr/include/hdf5/serial
+ENV LIBRARY_PATH=/usr/lib/aarch64-linux-gnu/hdf5/serial
+ENV LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu/hdf5/serial
 COPY requirements*.txt /data/projects/python/
 
 RUN pip install --upgrade pip && \
-    sed -i 's/tensorflow-cpu==2.11.1/tensorflow-aarch64==2.11.1/g' requirements.txt && \
-    sed -i 's/torch==1.13.1+cpu/torch==1.13.1/g' requirements.txt && \
-    sed -i 's/torchvision==0.14.1+cpu/torchvision==0.14.1/g' requirements.txt && \
+    pip install --no-cache-dir wheel && \
+    pip install --no-cache-dir torch==1.13.1 torchvision==0.14.1 --extra-index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir huggingface-hub==0.13.3 && \
+    pip install --no-cache-dir Cython==0.29.36 && \
+    pip install --no-cache-dir --no-build-isolation h5py==2.10.0 && \
+    sed -i '/^--extra-index-url/d' requirements.txt && \
+    sed -i 's/tensorflow-cpu==2.9.3/tensorflow-aarch64==2.11.1/g' requirements.txt && \
+    sed -i 's/pulsar-client==2.10.2/pulsar-client==2.10.0/g' requirements.txt && \
     sed -i 's/ipcl-python==2.0.0/#ipcl-python==2.0.0/g' requirements.txt && \
-    pip install --no-cache-dir -r requirements.txt
-
+    sed -i '/^torch==/d' requirements.txt && \
+    sed -i '/^torchvision==/d' requirements.txt && \
+    sed -i '/^numba==/d' requirements.txt && \
+    pip install --no-cache-dir -r requirements.txt -i https://mirrors.cloud.tencent.com/pypi/simple --extra-index-url https://pypi.org/simple
 ENV LD_PRELOAD=/data/projects/python/venv/lib/python3.8/site-packages/scikit_learn.libs/libgomp-d22c30c5.so.1.0.0
