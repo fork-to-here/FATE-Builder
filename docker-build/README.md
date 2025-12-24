@@ -78,6 +78,8 @@ After configuring `.env`, use the following command to build all images:
 
 ```bash
 FATE_DIR=/root/FATE bash build.sh all
+
+FATE_DIR=/Users/chenzhijun/workbench/FederatedAI/FATE REFIX=laotie255 TAG=1.10.0-release Build_Basic=1 Build_NN=0 Build_FUM=1 Build_Spark=0 Build_OP=1 Build_IPCL=0 Build_GPU=0 Build_LLM=1 Build_LLM_VERSION=v1.2.0  IPCL_VERSION=v1.1.3 IPCL_PKG_DIR=IPCL_PKG_DIR=/Users/chenzhijun/workbench/FederatedAI/pailliercryptolib_python/ Platform=arm64  bash build.sh base
 ```
 
 ## Environments
