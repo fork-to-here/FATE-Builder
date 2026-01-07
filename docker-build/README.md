@@ -76,6 +76,10 @@ PREFIX=<ip_address_of_registry>/federatedai
 
 After configuring `.env`, use the following command to build all images:
 
+#### notice
+
+Add `Werkzeug==2.0.3` to `FATE-Builder/docker-build/requirements.txt`
+
 ```bash
 FATE_DIR=/root/FATE bash build.sh all
 

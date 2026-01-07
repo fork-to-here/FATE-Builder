@@ -22,6 +22,7 @@ RUN if [ -n "$APT_MIRROR_PORTS" ]; then \
         libtool libffi-dev libssl-dev liblz4-1 liblz4-dev liblz4-tool zlib1g \
         zlib1g-dev xz-utils libopenblas-dev liblapack-dev libsm-dev pkg-config \
         libblas-dev libatlas-base-dev libtinfo-dev gfortran libbz2-dev liblzma-dev \
+        libsqlite3-dev \
         libsnappy-dev libxml2-dev libxslt1-dev libhdf5-dev libhdf5-serial-dev libaec-dev && \
     if [ ! -f /usr/lib/aarch64-linux-gnu/hdf5/serial/libhdf5.so ] && [ -f /usr/lib/aarch64-linux-gnu/hdf5/serial/libhdf5_serial.so ]; then \
         ln -s /usr/lib/aarch64-linux-gnu/hdf5/serial/libhdf5_serial.so /usr/lib/aarch64-linux-gnu/hdf5/serial/libhdf5.so; \
