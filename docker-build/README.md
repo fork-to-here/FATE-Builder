@@ -78,7 +78,11 @@ After configuring `.env`, use the following command to build all images:
 
 #### notice
 
-Add `Werkzeug==2.0.3` to `FATE-Builder/docker-build/requirements.txt`
+update `FATE-Builder/docker-build/requirements.txt`
+```
+Werkzeug==2.0.3
+numba==0.57.0
+```
 
 ```bash
 FATE_DIR=/root/FATE bash build.sh all
